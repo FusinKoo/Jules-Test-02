@@ -1,0 +1,6 @@
+numpy<2.1
+numba>=0.57,<0.60
+librosa==0.10.2.post1
+soundfile>=0.12
+audioread>=3.0
+tqdm
