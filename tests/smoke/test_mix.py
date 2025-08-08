@@ -2,6 +2,10 @@ from pathlib import Path
 import math
 import wave
 import array
+import json
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from mix import process
 
 
@@ -46,3 +50,10 @@ def test_mix(tmp_path):
     assert abs(loudness - (-14.0)) < 1.0
     assert "mix_lufs" in report
     assert "tracks" in report
+
+    proc_file = out / "processing.json"
+    assert proc_file.exists()
+    data = json.loads(proc_file.read_text())
+    for key in ["version", "params", "model", "time_seconds", "metrics"]:
+        assert key in data
+    assert "tracks" in data["metrics"]

@@ -4,6 +4,11 @@ import json
 import wave
 import array
 import math
+import time
+import traceback
+
+VERSION = "1.0"
+DEFAULT_MODEL = "naive-mix"
 
 TRACKS = ["vocals", "drums", "bass", "other"]
 
@@ -48,33 +53,74 @@ def _align_loudness(data, target_db):
     return _apply_gain(data, gain), loudness, gain
 
 
-def process(input_dir, output_dir, reference=None, track_lufs=-23.0, mix_lufs=-14.0):
+def process(
+    input_dir,
+    output_dir,
+    reference=None,
+    track_lufs=-23.0,
+    mix_lufs=-14.0,
+    model_name=DEFAULT_MODEL,
+):
+    """Mix stems and log structured metadata.
+
+    Parameters are recorded along with runtime metrics in ``processing.json``
+    so that experiments can be reproduced from logs alone.
+    """
+
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
-    tracks = {}
-    report = {"tracks": {}}
-    sr = None
-    for name in TRACKS:
-        stem_path = input_dir / f"{name}.wav"
-        if stem_path.exists():
-            data, sr = _load(stem_path)
-            norm, loudness, gain = _align_loudness(data, track_lufs)
-            tracks[name] = norm
-            report["tracks"][name] = {"input_db": loudness, "gain_db": gain}
-    if not tracks:
-        raise FileNotFoundError("No stem files found in input directory")
-    length = min(len(t) for t in tracks.values())
-    mix = [0.0] * length
-    for t in tracks.values():
-        for i in range(length):
-            mix[i] += t[i]
-    mix, _before_loudness, gain = _align_loudness(mix, mix_lufs)
-    _save(output_dir / "mix.wav", mix, sr)
-    final_loudness = _rms_db(mix)
-    with open(output_dir / "mix_lufs.txt", "w") as f:
-        f.write(f"{final_loudness:.2f}")
-    report["mix_lufs"] = final_loudness
-    report["mix_gain_db"] = gain
-    with open(output_dir / "report.json", "w") as f:
-        json.dump(report, f, indent=2)
-    return report
+    start = time.time()
+    metadata = {
+        "version": VERSION,
+        "params": {
+            "reference": reference,
+            "track_lufs": track_lufs,
+            "mix_lufs": mix_lufs,
+        },
+        "model": model_name,
+    }
+
+    try:
+        tracks = {}
+        report = {"tracks": {}}
+        sr = None
+        for name in TRACKS:
+            stem_path = input_dir / f"{name}.wav"
+            if stem_path.exists():
+                data, sr = _load(stem_path)
+                norm, loudness, gain = _align_loudness(data, track_lufs)
+                tracks[name] = norm
+                report["tracks"][name] = {
+                    "input_db": loudness,
+                    "gain_db": gain,
+                }
+        if not tracks:
+            raise FileNotFoundError("No stem files found in input directory")
+        length = min(len(t) for t in tracks.values())
+        mix = [0.0] * length
+        for t in tracks.values():
+            for i in range(length):
+                mix[i] += t[i]
+        mix, _before_loudness, gain = _align_loudness(mix, mix_lufs)
+        _save(output_dir / "mix.wav", mix, sr)
+        final_loudness = _rms_db(mix)
+        with open(output_dir / "mix_lufs.txt", "w") as f:
+            f.write(f"{final_loudness:.2f}")
+        report["mix_lufs"] = final_loudness
+        report["mix_gain_db"] = gain
+        with open(output_dir / "report.json", "w") as f:
+            json.dump(report, f, indent=2)
+
+        metadata["time_seconds"] = time.time() - start
+        metadata["metrics"] = report
+        with open(output_dir / "processing.json", "w") as f:
+            json.dump(metadata, f, indent=2)
+        return report
+    except Exception:
+        metadata["time_seconds"] = time.time() - start
+        metadata["exception"] = traceback.format_exc()
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        with open(output_dir / "processing.json", "w") as f:
+            json.dump(metadata, f, indent=2)
+        raise
