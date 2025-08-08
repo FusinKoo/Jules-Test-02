@@ -51,30 +51,55 @@ def _align_loudness(data, target_db):
 def process(input_dir, output_dir, reference=None, track_lufs=-23.0, mix_lufs=-14.0):
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    report_path = output_dir / "report.json"
+    mix_path = output_dir / "mix.wav"
+    lufs_path = output_dir / "mix_lufs.txt"
+
+    if mix_path.exists() and lufs_path.exists() and report_path.exists():
+        with open(report_path) as f:
+            return json.load(f)
+
     tracks = {}
     report = {"tracks": {}}
     sr = None
     for name in TRACKS:
+        norm_path = output_dir / f"{name}_norm.wav"
+        if norm_path.exists():
+            data, sr = _load(norm_path)
+            tracks[name] = data
+            report["tracks"][name] = {"cached": True}
+            continue
         stem_path = input_dir / f"{name}.wav"
         if stem_path.exists():
             data, sr = _load(stem_path)
             norm, loudness, gain = _align_loudness(data, track_lufs)
             tracks[name] = norm
-            report["tracks"][name] = {"input_db": loudness, "gain_db": gain}
+            _save(norm_path, norm, sr)
+            report["tracks"][name] = {
+                "input_db": loudness,
+                "gain_db": gain,
+                "cached": False,
+            }
     if not tracks:
         raise FileNotFoundError("No stem files found in input directory")
-    length = min(len(t) for t in tracks.values())
-    mix = [0.0] * length
-    for t in tracks.values():
-        for i in range(length):
-            mix[i] += t[i]
-    mix, _before_loudness, gain = _align_loudness(mix, mix_lufs)
-    _save(output_dir / "mix.wav", mix, sr)
+    if mix_path.exists():
+        mix, sr = _load(mix_path)
+    else:
+        length = min(len(t) for t in tracks.values())
+        mix = [0.0] * length
+        for t in tracks.values():
+            for i in range(length):
+                mix[i] += t[i]
+        mix, _before_loudness, gain = _align_loudness(mix, mix_lufs)
+        _save(mix_path, mix, sr)
+        report["mix_gain_db"] = gain
     final_loudness = _rms_db(mix)
-    with open(output_dir / "mix_lufs.txt", "w") as f:
+    with open(lufs_path, "w") as f:
         f.write(f"{final_loudness:.2f}")
     report["mix_lufs"] = final_loudness
-    report["mix_gain_db"] = gain
-    with open(output_dir / "report.json", "w") as f:
+    report.setdefault("mix_gain_db", mix_lufs - final_loudness)
+    with open(report_path, "w") as f:
         json.dump(report, f, indent=2)
     return report

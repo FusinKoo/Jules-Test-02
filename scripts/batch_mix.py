@@ -19,8 +19,14 @@ def main():
     for song_dir in Path(args.input_root).iterdir():
         if song_dir.is_dir():
             out_dir = Path(args.output_root) / song_dir.name
+            if (out_dir / "report.json").exists():
+                print(f"Skipping {song_dir}, already processed")
+                continue
             print(f"Processing {song_dir} -> {out_dir}")
-            process(song_dir, out_dir)
+            try:
+                process(song_dir, out_dir)
+            except Exception as e:  # pragma: no cover
+                print(f"Failed {song_dir}: {e}")
 
 if __name__ == "__main__":
     main()
