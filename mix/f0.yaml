@@ -1,0 +1,4 @@
+{
+  "rmvpe": {"threshold": 0.03, "window": 0.1},
+  "crepe_full": {"threshold": 0.05, "window": 0.2}
+}
