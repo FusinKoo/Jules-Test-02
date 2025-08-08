@@ -2,7 +2,13 @@ from pathlib import Path
 import math
 import wave
 import array
-from mix import process
+
+try:  # optional dependency
+    import soundfile as sf  # type: ignore
+except Exception:  # pragma: no cover - handled gracefully
+    sf = None
+
+from mix import process, INTERNAL_SR
 
 
 def _write_tone(path, freq, duration=5, sr=44100):
@@ -22,12 +28,23 @@ def _write_tone(path, freq, duration=5, sr=44100):
         wf.writeframes(ints.tobytes())
 
 def _rms_db(path):
-    with wave.open(str(path), "rb") as wf:
-        frames = wf.readframes(wf.getnframes())
-    data = array.array("h", frames)
-    floats = [s/32768.0 for s in data]
-    rms = math.sqrt(sum(x*x for x in floats)/len(floats))
-    return 20*math.log10(rms)
+    if sf is not None:
+        data, _sr = sf.read(str(path), dtype="float32")
+        rms = math.sqrt(sum(x * x for x in data) / len(data))
+    else:
+        with wave.open(str(path), "rb") as wf:
+            frames = wf.readframes(wf.getnframes())
+        data = []
+        for i in range(0, len(frames), 3):
+            chunk = frames[i : i + 3]
+            if chunk[2] & 0x80:
+                chunk += b"\xff"
+            else:
+                chunk += b"\x00"
+            sample = int.from_bytes(chunk, "little", signed=True)
+            data.append(sample / 8388608.0)
+        rms = math.sqrt(sum(x * x for x in data) / len(data))
+    return 20 * math.log10(rms)
 
 
 def _make_stems(directory):
@@ -42,6 +59,14 @@ def test_mix(tmp_path):
     report = process(inp, out)
     mix_file = out / "mix.wav"
     assert mix_file.exists()
+    if sf is not None:
+        info = sf.info(mix_file)
+        assert info.samplerate == INTERNAL_SR
+        assert info.subtype == "PCM_24"
+    else:
+        with wave.open(str(mix_file), "rb") as wf:
+            assert wf.getframerate() == INTERNAL_SR
+            assert wf.getsampwidth() == 3
     loudness = _rms_db(mix_file)
     assert abs(loudness - (-14.0)) < 1.0
     assert "mix_lufs" in report

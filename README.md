@@ -3,7 +3,9 @@
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/FusinKoo/Jules-Test-02/blob/main/notebooks/demo.ipynb)
 
-This repository provides a minimal library, command line tools and a demo notebook for automatic music mixing.
+This repository provides a minimal library, command line tools and a demo notebook for automatic music mixing.  Audio is processed
+internally at **48 kHz / 32‑bit float** and any required sample rate conversions use `soxr` with the "best" quality setting.  The
+final mix is exported as **48 kHz / 24‑bit PCM** and the report includes a list of sample rate conversion points.
 
 ## Structure
 
