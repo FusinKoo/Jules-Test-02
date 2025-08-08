@@ -45,3 +45,17 @@ Run the smoke test which generates 5‑second stems and mixes them:
 ```
 PYTHONPATH=. pytest tests/smoke/test_mix.py
 ```
+
+## Deterministic runs
+
+Use the helper in `mix.deterministic` to reduce run‑to‑run variation across
+CPU and GPU backends. The command line accepts a seed which enables
+deterministic flags for NumPy, PyTorch and cuDNN:
+
+```
+python scripts/mix_cli.py input_dir output_dir --seed 0
+```
+
+This sets random seeds, fixes STFT parameters (1024 FFT, 256 hop, Hann window)
+and requests deterministic kernels. Remaining differences are due to floating
+point rounding in third‑party libraries.
