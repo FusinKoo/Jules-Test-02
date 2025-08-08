@@ -1,7 +1,12 @@
 from pathlib import Path
+import sys
 import math
 import wave
 import array
+
+# Ensure the package under test is importable when the tests are executed from
+# arbitrary working directories.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from mix import process
 
 
@@ -46,3 +51,14 @@ def test_mix(tmp_path):
     assert abs(loudness - (-14.0)) < 1.0
     assert "mix_lufs" in report
     assert "tracks" in report
+
+
+def test_mix_with_separation(tmp_path):
+    """Separation switch should still produce a valid mix."""
+    inp = tmp_path / "input"
+    _make_stems(inp)
+    out = tmp_path / "out"
+    report = process(inp, out, separate=True)
+    mix_file = out / "mix.wav"
+    assert mix_file.exists()
+    assert report.get("separation", {}).get("ok") is True

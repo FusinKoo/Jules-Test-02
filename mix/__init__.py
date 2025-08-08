@@ -1,9 +1,35 @@
-"""Minimal audio mixing library using only the Python standard library."""
+"""Minimal audio mixing library using only the Python standard library.
+
+This module originally only provided utilities for loudness alignment and
+mixdown.  The current iteration adds an **optional** source separation step
+that can be toggled on or off by the caller.  The separation logic is heavily
+simplified so it can run in constrained environments while still exposing a
+high level API that mimics a real world system where different quality models
+and hardware backends are available.
+
+Key features
+------------
+
+* "Separation switch" – the caller decides whether to perform separation.
+* "Model/quality levels" – ``low`` and ``high`` quality tiers.
+* "CPU slow path / GPU fast path" – automatically choose a device when the
+  caller does not specify one.
+* Automatic degradation and bypass when resources are insufficient or when the
+  separation step fails for any reason.
+
+The actual separation algorithm implemented here is intentionally lightweight:
+it merely copies the existing stems, acting as a placeholder for a real
+separator.  This keeps the library dependency‑free while providing a clean
+extension point for more advanced implementations.
+"""
 from pathlib import Path
 import json
 import wave
 import array
 import math
+import os
+import shutil
+import time
 
 TRACKS = ["vocals", "drums", "bass", "other"]
 
@@ -48,11 +74,149 @@ def _align_loudness(data, target_db):
     return _apply_gain(data, gain), loudness, gain
 
 
-def process(input_dir, output_dir, reference=None, track_lufs=-23.0, mix_lufs=-14.0):
+# ---------------------------------------------------------------------------
+# Optional source separation
+# ---------------------------------------------------------------------------
+
+def _available_memory():
+    """Best effort check of available system memory in bytes."""
+    try:
+        import psutil  # type: ignore
+
+        return psutil.virtual_memory().available
+    except Exception:
+        try:
+            pages = os.sysconf("SC_AVPHYS_PAGES")
+            page_size = os.sysconf("SC_PAGE_SIZE")
+            return pages * page_size
+        except Exception:
+            return None
+
+
+def _gpu_available():
+    """Detect whether a GPU is available using PyTorch if installed."""
+    try:
+        import torch  # type: ignore
+
+        return bool(torch.cuda.is_available())
+    except Exception:
+        return False
+
+
+def _select_device(device: str) -> str:
+    """Choose computation device based on user preference and availability."""
+    if device == "auto":
+        return "gpu" if _gpu_available() else "cpu"
+    return device
+
+
+def _select_quality(quality: str, mem_limit: int | None, avail_mem: int | None) -> str:
+    """Choose model quality given memory constraints."""
+    if quality == "auto":
+        # If we have plenty of memory (arbitrarily 4 GB) choose high quality.
+        if avail_mem is not None and avail_mem > 4 * 1024 ** 3:
+            quality = "high"
+        else:
+            quality = "low"
+    if mem_limit is not None and avail_mem is not None and avail_mem < mem_limit:
+        # Not enough memory for requested tier – degrade gracefully.
+        quality = "low"
+    return quality
+
+
+def separate_sources(input_dir: Path, output_dir: Path, *, quality: str = "auto",
+                     device: str = "auto", memory_limit: int | None = None) -> dict:
+    """Attempt to perform source separation.
+
+    Parameters
+    ----------
+    input_dir:
+        Directory containing the input stems.
+    output_dir:
+        Destination directory for separated files.
+    quality:
+        ``"high"`` or ``"low"``.  ``"auto"`` selects based on resources.
+    device:
+        ``"cpu"``, ``"gpu"`` or ``"auto"``.
+    memory_limit:
+        Optional minimum required memory in bytes.  If the system has less
+        available memory, the function automatically degrades to ``"low"``
+        quality.  This keeps weaker machines functional.
+
+    Returns
+    -------
+    dict
+        A report containing at least ``ok`` indicating success.
+    """
+
+    avail_mem = _available_memory()
+    chosen_device = _select_device(device)
+    chosen_quality = _select_quality(quality, memory_limit, avail_mem)
+    report = {
+        "device": chosen_device,
+        "quality": chosen_quality,
+        "ok": False,
+    }
+
+    try:
+        # Simulate work: GPU assumed to be faster.
+        time.sleep(0.01 if chosen_device == "gpu" else 0.05)
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+        for name in TRACKS:
+            src = input_dir / f"{name}.wav"
+            dst = output_dir / f"{name}.wav"
+            if src.exists():
+                shutil.copyfile(src, dst)
+            else:
+                # Create a silent placeholder if a stem is missing.
+                _save(dst, [], 44100)
+        report["ok"] = True
+    except MemoryError:
+        report["reason"] = "memory"
+    except Exception as exc:  # pragma: no cover - generic safety net
+        report["reason"] = str(exc)
+    return report
+
+
+def process(
+    input_dir,
+    output_dir,
+    reference=None,
+    track_lufs=-23.0,
+    mix_lufs=-14.0,
+    *,
+    separate: bool = False,
+    quality: str = "auto",
+    device: str = "auto",
+    memory_limit: int | None = None,
+):
+    """Process stems and create a mix.
+
+    Parameters beyond ``mix_lufs`` are optional and control the new separation
+    stage.  When ``separate`` is ``True`` the function attempts to run
+    :func:`separate_sources` before mixing.  If separation fails for any reason
+    the function transparently falls back to the original input (bypass).
+    """
+
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
-    tracks = {}
     report = {"tracks": {}}
+
+    if separate:
+        sep_dir = output_dir / "separated"
+        sep_report = separate_sources(
+            input_dir,
+            sep_dir,
+            quality=quality,
+            device=device,
+            memory_limit=memory_limit,
+        )
+        report["separation"] = sep_report
+        if sep_report.get("ok"):
+            input_dir = sep_dir
+
+    tracks = {}
     sr = None
     for name in TRACKS:
         stem_path = input_dir / f"{name}.wav"
