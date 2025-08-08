@@ -78,3 +78,7 @@ def process(input_dir, output_dir, reference=None, track_lufs=-23.0, mix_lufs=-1
     with open(output_dir / "report.json", "w") as f:
         json.dump(report, f, indent=2)
     return report
+
+from .f0 import F0Extractor  # noqa: E402
+
+__all__ = ["TRACKS", "process", "F0Extractor"]
