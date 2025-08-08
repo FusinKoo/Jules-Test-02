@@ -5,7 +5,7 @@ import wave
 import array
 import math
 
-TRACKS = ["vocals", "drums", "bass", "other"]
+from .config import get_config
 
 
 def _load(path):
@@ -48,24 +48,44 @@ def _align_loudness(data, target_db):
     return _apply_gain(data, gain), loudness, gain
 
 
-def process(input_dir, output_dir, reference=None, track_lufs=-23.0, mix_lufs=-14.0):
+def process(
+    input_dir,
+    output_dir,
+    reference=None,
+    track_lufs=None,
+    mix_lufs=None,
+    profile=None,
+    tracks=None,
+):
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
-    tracks = {}
-    report = {"tracks": {}}
+    cfg = get_config(profile)
+    tracks = tracks or cfg.get("tracks", [])
+    track_lufs = track_lufs if track_lufs is not None else cfg.get("track_lufs", -23.0)
+    mix_lufs = mix_lufs if mix_lufs is not None else cfg.get("mix_lufs", -14.0)
+    report = {
+        "tracks": {},
+        "config": {
+            "track_lufs": track_lufs,
+            "mix_lufs": mix_lufs,
+            "tracks": tracks,
+            "quality_profile": cfg.get("quality_profile"),
+        },
+    }
+    data_tracks = {}
     sr = None
-    for name in TRACKS:
+    for name in tracks:
         stem_path = input_dir / f"{name}.wav"
         if stem_path.exists():
             data, sr = _load(stem_path)
             norm, loudness, gain = _align_loudness(data, track_lufs)
-            tracks[name] = norm
+            data_tracks[name] = norm
             report["tracks"][name] = {"input_db": loudness, "gain_db": gain}
-    if not tracks:
+    if not data_tracks:
         raise FileNotFoundError("No stem files found in input directory")
-    length = min(len(t) for t in tracks.values())
+    length = min(len(t) for t in data_tracks.values())
     mix = [0.0] * length
-    for t in tracks.values():
+    for t in data_tracks.values():
         for i in range(length):
             mix[i] += t[i]
     mix, _before_loudness, gain = _align_loudness(mix, mix_lufs)
