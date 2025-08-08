@@ -1,0 +1,17 @@
+name: mix-cpu
+dependencies:
+  - python=3.10
+  - pip
+  - pytorch
+  - torchvision
+  - torchaudio
+  - cpuonly
+  - pip:
+      - librosa
+      - soundfile
+      - pyloudnorm
+      - demucs
+      - matchering
+channels:
+  - pytorch
+  - defaults
