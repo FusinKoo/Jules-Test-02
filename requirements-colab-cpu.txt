@@ -1,6 +1,11 @@
-numpy<2.1
-numba>=0.57,<0.60
+--index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://pypi.org/simple
+torch==2.1.0+cpu
+torchaudio==2.1.0+cpu
+torchvision==0.16.0+cpu
+numpy==1.26.4
+numba==0.59.1
 librosa==0.10.2.post1
-soundfile>=0.12
-audioread>=3.0
-tqdm
+soundfile==0.12.1
+audioread==3.0.1
+tqdm==4.66.4
