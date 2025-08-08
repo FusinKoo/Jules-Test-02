@@ -19,13 +19,36 @@ def _load(path):
 
 
 def _save(path, data, sr):
+    import random
+    import struct
     path.parent.mkdir(parents=True, exist_ok=True)
-    ints = array.array("h", [max(-32768, min(32767, int(x * 32767))) for x in data])
+    target_sr = 48000
+    if sr != target_sr:
+        raise ValueError("Sample rate must be 48kHz")
+    # convert to float32 for uniform quantisation
+    data = [struct.unpack("f", struct.pack("f", x))[0] for x in data]
+    peak_limit = math.pow(10.0, -1.0 / 20.0)
+    peak = max((abs(x) for x in data), default=0.0)
+    if peak > peak_limit:
+        scale = peak_limit / peak
+        data = [x * scale for x in data]
+    head_gap = target_sr
+    lsb = 1.0 / (2 ** 23)
+    max_int = 2 ** 23 - 1
+    frames = bytearray(b"\x00\x00\x00" * head_gap)
+    for x in data:
+        y = x + (random.random() - random.random()) * lsb
+        y = max(-1.0, min(1.0 - lsb, y))
+        n = int(round(y * max_int))
+        frames.extend(n.to_bytes(3, "little", signed=True))
     with wave.open(str(path), "wb") as wf:
         wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(sr)
-        wf.writeframes(ints.tobytes())
+        wf.setsampwidth(3)
+        wf.setframerate(target_sr)
+        wf.writeframes(frames)
+    with wave.open(str(path), "rb") as wf:
+        if wf.getsampwidth() != 3 or wf.getframerate() != target_sr:
+            raise ValueError("Export verification failed")
 
 
 def _rms_db(data):
