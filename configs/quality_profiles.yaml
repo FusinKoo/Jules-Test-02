@@ -1,0 +1,4 @@
+{
+  "cpu_ultra": {"track_lufs": -23.0, "mix_lufs": -14.0},
+  "gpu_ultra": {"track_lufs": -20.0, "mix_lufs": -12.0}
+}
