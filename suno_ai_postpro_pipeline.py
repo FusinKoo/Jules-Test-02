@@ -41,9 +41,11 @@
 %cd ..
 
 # 4. Install Python packages
-!pip install --quiet \
-    bs_roformer \
-    pedalboard \
+# Upgrade core packaging tools first to avoid metadata build errors
+!pip install --upgrade pip==24.0 setuptools wheel
+!pip install --quiet --break-system-packages \
+    BS-RoFormer \
+    "pedalboard>=0.8.6" \
     pyloudnorm \
     matchering==2.0.6 \
     soundfile \
