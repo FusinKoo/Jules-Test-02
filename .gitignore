@@ -1,2 +1,1 @@
-# Ignore the virtual environment directory
-rvc_venv/
+__pycache__/
