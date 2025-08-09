@@ -53,6 +53,7 @@ def test_mix(tmp_path):
     assert "mix_lufs" in report
     assert "mix_true_peak" in report
     assert abs(loudness - report["mix_lufs"]) < 1e-5
+    assert abs(tp - report["mix_true_peak"]) < 1e-5
     assert "tracks" in report
 
 

@@ -6,7 +6,7 @@ Processing runs at 48 kHz float32 with best‑quality `soxr` resampling and exp
 48 kHz/24‑bit WAV files with TPDF dithering. Loudness (LUFS) and true‑peak are
 measured via [`pyloudnorm`](https://github.com/csteinmetz1/pyloudnorm)
 following ITU‑R BS.1770. Before export the mix is limited to a –1 dBTP
-true‑peak margin and the final values are written to `mix_lufs.txt` and
+true‑peak margin. The final values are written to `mix_lufs.txt` and
 `report.json`.
 
 ## Environment Requirements
