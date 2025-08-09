@@ -15,9 +15,12 @@ exports 48 kHz/24‑bit WAV files with TPDF dithering and 1 dB true‑peak mar
 
 Launch the Colab notebook via the badge above.
 
-1. Run the first **Environment Setup** cell. It installs `ffmpeg` and a
-   matching set of `torch`, `torchvision` and `torchaudio` wheels for either
-   CPU or GPU and reports their versions.
+1. Run the first **Environment Setup** cell. It installs `ffmpeg` via
+   `apt-get` and then pulls `torch`, `torchvision` and `torchaudio` from the
+   official PyTorch indexes. On GPU machines the CUDA 12.1 index is used,
+   while CPU sessions use the CPU‑only index. The three packages are pinned to
+   matching versions, and the cell prints the installed versions along with
+   `torch.cuda.is_available()` and `ffmpeg -version` to confirm a valid setup.
 2. Execute the remaining cells to generate short sine‑wave stems and mix them
    using `scripts/mix_cli.py`.
 
