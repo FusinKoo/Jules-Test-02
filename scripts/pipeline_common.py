@@ -13,5 +13,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--quality_profile", default="medium", help="quality/speed profile")
     parser.add_argument("--lufs_target", type=float, default=-14.0, help="target loudness in LUFS")
     parser.add_argument("--truepeak_margin", type=float, default=-1.0, help="true peak margin in dB")
+    parser.add_argument(
+        "--mix_mode",
+        choices=["demo", "full"],
+        default="demo",
+        help="mixing chain: 'demo' for minimal, 'full' for high quality",
+    )
     parser.add_argument("--dry_run", action="store_true", help="run without producing output")
     return parser

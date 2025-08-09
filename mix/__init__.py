@@ -79,6 +79,7 @@ def process(
     mix_lufs=None,
     profile=None,
     tracks=None,
+    mix_mode: str = "demo",
 ):
     input_dir = Path(input_dir)
     output_dir = Path(output_dir)
@@ -86,6 +87,8 @@ def process(
     tracks = tracks or cfg.get("tracks", [])
     track_lufs = track_lufs if track_lufs is not None else cfg.get("track_lufs", -23.0)
     mix_lufs = mix_lufs if mix_lufs is not None else cfg.get("mix_lufs", -14.0)
+    if mix_mode not in {"demo", "full"}:
+        raise ValueError("mix_mode must be 'demo' or 'full'")
     report = {
         "tracks": {},
         "config": {
@@ -93,6 +96,7 @@ def process(
             "mix_lufs": mix_lufs,
             "tracks": tracks,
             "quality_profile": cfg.get("quality_profile"),
+            "mix_mode": mix_mode,
         },
     }
     data_tracks = {}

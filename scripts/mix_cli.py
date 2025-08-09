@@ -26,6 +26,12 @@ def main():
     parser.add_argument("output", help="output directory")
     parser.add_argument("--reference", help="optional reference track")
     parser.add_argument(
+        "--mix_mode",
+        choices=["demo", "full"],
+        default="demo",
+        help="mixing chain: 'demo' for minimal, 'full' for high quality",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         help="set random seed and enable deterministic backends",
@@ -35,7 +41,12 @@ def main():
         enable_determinism(args.seed)
     device = "cuda" if (torch and torch.cuda.is_available()) else "cpu"
     print(f"Using device: {device}")
-    report = process(Path(args.input), Path(args.output), reference=args.reference)
+    report = process(
+        Path(args.input),
+        Path(args.output),
+        reference=args.reference,
+        mix_mode=args.mix_mode,
+    )
     print(json.dumps(report, indent=2))
 
 if __name__ == "__main__":
