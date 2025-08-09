@@ -3,10 +3,14 @@
 import argparse
 import os
 
+from mix import model_manager
+
 
 def build_parser() -> argparse.ArgumentParser:
     """Create argument parser with unified options for all pipeline scripts."""
-    parser = argparse.ArgumentParser(description="Run the audio processing pipeline")
+    parser = argparse.ArgumentParser(
+        description="Run the audio processing pipeline (48 kHz/24-bit output)"
+    )
     parser.add_argument("--input", required=True, help="input file or directory")
     parser.add_argument("--output", required=True, help="output directory")
     parser.add_argument("--rvc_model", help="path to the RVC model")
@@ -24,13 +28,20 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def resolve_rvc_model(args: argparse.Namespace) -> None:
-    """Resolve and store the RVC model path.
+    """Populate ``args.rvc_model`` using CLI, env var and discovery.
 
-    Updates ``args`` in place and propagates the result via the
-    ``RVC_MODEL`` environment variable so downstream components can locate the
-    model.
+    A notebook dropdown is offered when multiple models are available.
     """
-    from mix.model_manager import get_model_path
 
-    args.rvc_model = get_model_path(cli_path=args.rvc_model)
-    os.environ["RVC_MODEL"] = args.rvc_model
+    def _in_notebook() -> bool:
+        try:
+            from IPython import get_ipython
+
+            return get_ipython() is not None
+        except Exception:  # pragma: no cover - IPython not installed
+            return False
+
+    path = model_manager.get_model_path(args.rvc_model, use_ui=_in_notebook())
+    os.environ[model_manager.ENV_VAR] = path
+    args.rvc_model = path
+    return args
