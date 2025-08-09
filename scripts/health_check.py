@@ -22,7 +22,7 @@ def main() -> None:
         help="directory used for disk space check (defaults to current directory)",
     )
     parser.add_argument("--model", help="path to required model file", default=None)
-    parser.add_argument("--expected-sr", type=int, default=44100, help="expected sample rate")
+    parser.add_argument("--expected-sr", type=int, default=48000, help="expected sample rate")
     parser.add_argument(
         "--min-gpu-mem",
         type=int,

@@ -2,19 +2,26 @@
 from pathlib import Path
 import json
 import wave
-import array
 import math
+import array
 
 from .config import get_config
 
 
-def _load(path):
+def _load(path: Path, target_sr: int = 48000) -> tuple[list[float], int]:
+    """Load a mono WAV file and resample to ``target_sr`` if needed."""
     with wave.open(str(path), "rb") as wf:
         sr = wf.getframerate()
         frames = wf.readframes(wf.getnframes())
         data = array.array("h", frames)
-    # convert to float in [-1, 1]
     data = [s / 32768.0 for s in data]
+    if sr != target_sr:
+        try:
+            import soxr  # type: ignore
+        except Exception as exc:  # pragma: no cover - optional dependency
+            raise RuntimeError("soxr library is required for resampling") from exc
+        data = list(soxr.resample(data, sr, target_sr, quality="best"))
+        sr = target_sr
     return data, sr
 
 

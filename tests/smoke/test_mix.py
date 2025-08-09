@@ -2,18 +2,14 @@ from pathlib import Path
 import math
 import wave
 import array
+import pytest
 from mix import process
 
 
 def _write_tone(path, freq, duration=5, sr=48000):
     """Generate a mono sine wave and write it as a WAV file."""
-    t = [
-        math.sin(2 * math.pi * freq * i / sr)
-        for i in range(int(duration * sr))
-    ]
-    ints = array.array(
-        "h", [int(max(-1.0, min(1.0, x)) * 32767) for x in t]
-    )
+    t = [math.sin(2 * math.pi * freq * i / sr) for i in range(int(duration * sr))]
+    ints = array.array("h", [int(max(-1.0, min(1.0, x)) * 32767) for x in t])
     path.parent.mkdir(parents=True, exist_ok=True)
     with wave.open(str(path), "wb") as wf:
         wf.setnchannels(1)
@@ -36,10 +32,10 @@ def _rms_db(path, head_gap=48000):
     return 20 * math.log10(rms)
 
 
-def _make_stems(directory):
+def _make_stems(directory, sr=48000):
     freqs = {"vocals": 440, "drums": 220, "bass": 110, "other": 330}
     for name, freq in freqs.items():
-        _write_tone(directory / f"{name}.wav", freq)
+        _write_tone(directory / f"{name}.wav", freq, sr=sr)
 
 def test_mix(tmp_path):
     inp = tmp_path / "input"
@@ -57,3 +53,13 @@ def test_mix(tmp_path):
     assert abs(loudness - (-14.0)) < 1.0
     assert "mix_lufs" in report
     assert "tracks" in report
+
+
+def test_resample_to_48k(tmp_path):
+    soxr = pytest.importorskip("soxr")  # type: ignore
+    inp = tmp_path / "input"
+    _make_stems(inp, sr=44100)
+    out = tmp_path / "out"
+    process(inp, out)
+    with wave.open(str(out / "mix.wav"), "rb") as wf:
+        assert wf.getframerate() == 48000
