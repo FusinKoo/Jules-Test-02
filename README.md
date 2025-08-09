@@ -85,6 +85,23 @@ Arguments:
 - `--truepeak_margin` – true peak margin in dB.
 - `--dry_run` – run without producing output.
 
+## RVC model selection
+
+By default the toolkit expects an RVC model at
+`/content/drive/MyDrive/models/RVC/G_8200.pth`. All `.pth` files inside
+`/content/drive/MyDrive/models/RVC/` are scanned on startup and presented as
+candidates.
+
+Model priority is:
+
+1. `--rvc_model` command line argument
+2. `RVC_MODEL` environment variable
+3. Notebook drop‑down selection when multiple models are available
+
+If none of these resolve to an existing file the default path is used. When no
+model can be found an explicit error is raised with instructions to upload one
+to the directory above.
+
 ## Tests
 
 Run the smoke test that generates synthetic stems:
