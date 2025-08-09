@@ -11,10 +11,13 @@ Mix four audio stems (`vocals.wav`, `drums.wav`, `bass.wav`, `other.wav`) into a
 
 ## One-click Start
 
-Launch the Colab notebook via the badge above and run all cells:
+Launch the Colab notebook via the badge above.
 
-1. Installs dependencies (ffmpeg, PyTorch, the library).
-2. Generates short sine-wave stems and mixes them using `scripts/mix_cli.py`.
+1. Run the first **Environment Setup** cell. It installs `ffmpeg` and a
+   matching set of `torch`, `torchvision` and `torchaudio` wheels for either
+   CPU or GPU and reports their versions.
+2. Execute the remaining cells to generate short sine‑wave stems and mix them
+   using `scripts/mix_cli.py`.
 
 After execution `mix.wav`, `mix_lufs.txt` and `report.json` appear in the notebook's working directory.
 
