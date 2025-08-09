@@ -46,6 +46,8 @@ python scripts/batch_mix.py /path/to/input_root /path/to/output_root
 
 Each subfolder of `input_root` must contain the four stem files.
 
+The script relies on the `BatchExecutor` helper located in `batch_executor.py`.
+
 ## Common Faults
 
 - **`ffmpeg: command not found`** – install `ffmpeg`.

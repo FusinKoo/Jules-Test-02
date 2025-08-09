@@ -10,7 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from mix import process
-from batch import BatchExecutor
+from batch_executor import BatchExecutor
 from mix.deterministic import enable_determinism
 
 

@@ -1,4 +1,4 @@
-from batch import BatchExecutor
+from batch_executor import BatchExecutor
 
 
 def test_batch_executor_retry(capsys):
