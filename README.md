@@ -3,6 +3,9 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/FusinKoo/Jules-Test-02/blob/main/notebooks/demo.ipynb)
 Mix four audio stems (`vocals.wav`, `drums.wav`, `bass.wav`, `other.wav`) into a single track.
 Processing runs at 48 kHz float32 and exports 48 kHz/24‑bit WAV files.
+Loudness (LUFS) and true‑peak are measured via [`pyloudnorm`](https://github.com/csteinmetz1/pyloudnorm)
+following ITU‑R BS.1770. Before export the mix is limited to a ‑1 dBTP margin and
+the final values are written to `mix_lufs.txt` and `report.json`.
 
 ## Environment Requirements
 

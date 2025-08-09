@@ -3,7 +3,7 @@ import wave
 
 import pytest
 
-from mix import process
+from mix import process, _measure_loudness_tp
 from mix.deterministic import enable_determinism, stft
 
 from tests.smoke.test_mix import _make_stems
@@ -30,8 +30,9 @@ def test_cpu_gpu_alignment(tmp_path):
     ints = array.array("h", frames)
     data = torch.tensor([s / 32768.0 for s in ints], dtype=torch.float32)
 
-    cpu_lufs = 20 * torch.log10(torch.sqrt(torch.mean(data ** 2))).item()
+    cpu_lufs, _ = _measure_loudness_tp(data.tolist(), 48000)
     assert abs(cpu_lufs - report["mix_lufs"]) < 1e-6
+    assert "mix_true_peak" in report
 
     if not (torch and torch.cuda.is_available()):
         pytest.skip("CUDA not available")
@@ -41,7 +42,7 @@ def test_cpu_gpu_alignment(tmp_path):
     max_diff = torch.max(torch.abs(spec_cpu - spec_gpu)).item()
     assert max_diff < 1e-6
 
-    gpu_lufs = 20 * torch.log10(torch.sqrt(torch.mean((data.to("cuda") ** 2)))).item()
+    gpu_lufs, _ = _measure_loudness_tp(data.to("cuda").cpu().tolist(), 48000)
     assert abs(cpu_lufs - gpu_lufs) < 0.1
 
     peak_cpu = _peak_db(data)

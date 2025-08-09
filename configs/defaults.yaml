@@ -2,5 +2,6 @@
   "tracks": ["vocals", "drums", "bass", "other"],
   "track_lufs": -23.0,
   "mix_lufs": -14.0,
+  "truepeak_margin": -1.0,
   "quality_profile": "cpu_ultra"
 }

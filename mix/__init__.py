@@ -1,9 +1,14 @@
-"""Minimal audio mixing library using only the Python standard library."""
+"""Minimal audio mixing library using pyloudnorm for loudness and true-peak."""
 from pathlib import Path
 import json
 import wave
 import math
 import array
+
+try:  # pragma: no cover - dependency is validated in tests
+    import pyloudnorm as pyln
+except Exception as exc:  # pragma: no cover - optional dependency
+    raise RuntimeError("pyloudnorm library is required for loudness measurement") from exc
 
 from .config import get_config
 
@@ -58,13 +63,12 @@ def _save(path, data, sr):
             raise ValueError("Export verification failed")
 
 
-def _rms_db(data):
-    if not data:
-        return -float("inf")
-    rms = math.sqrt(sum(x * x for x in data) / len(data))
-    if rms == 0:
-        return -float("inf")
-    return 20 * math.log10(rms)
+def _measure_loudness_tp(data, sr):
+    """Measure integrated loudness and true peak using pyloudnorm."""
+    meter = pyln.Meter(sr)  # ITU-R BS.1770 compliant
+    loudness = meter.integrated_loudness(data)
+    true_peak = meter.true_peak(data)
+    return loudness, true_peak
 
 
 def _apply_gain(data, gain_db):
@@ -72,10 +76,21 @@ def _apply_gain(data, gain_db):
     return [x * factor for x in data]
 
 
-def _align_loudness(data, target_db):
-    loudness = _rms_db(data)
+def _align_loudness(data, target_db, sr):
+    loudness, _ = _measure_loudness_tp(data, sr)
     gain = target_db - loudness
     return _apply_gain(data, gain), loudness, gain
+
+
+def _limit_true_peak(data, sr, margin_db):
+    """Apply a final true-peak limiter and re-measure."""
+    loudness, true_peak = _measure_loudness_tp(data, sr)
+    gain = 0.0
+    if true_peak > margin_db:
+        gain = margin_db - true_peak
+        data = _apply_gain(data, gain)
+        loudness, true_peak = _measure_loudness_tp(data, sr)
+    return data, gain, loudness, true_peak
 
 
 def process(
@@ -84,6 +99,7 @@ def process(
     reference=None,
     track_lufs=None,
     mix_lufs=None,
+    truepeak_margin=None,
     profile=None,
     tracks=None,
 ):
@@ -93,11 +109,15 @@ def process(
     tracks = tracks or cfg.get("tracks", [])
     track_lufs = track_lufs if track_lufs is not None else cfg.get("track_lufs", -23.0)
     mix_lufs = mix_lufs if mix_lufs is not None else cfg.get("mix_lufs", -14.0)
+    truepeak_margin = (
+        truepeak_margin if truepeak_margin is not None else cfg.get("truepeak_margin", -1.0)
+    )
     report = {
         "tracks": {},
         "config": {
             "track_lufs": track_lufs,
             "mix_lufs": mix_lufs,
+            "truepeak_margin": truepeak_margin,
             "tracks": tracks,
             "quality_profile": cfg.get("quality_profile"),
         },
@@ -108,7 +128,7 @@ def process(
         stem_path = input_dir / f"{name}.wav"
         if stem_path.exists():
             data, sr = _load(stem_path)
-            norm, loudness, gain = _align_loudness(data, track_lufs)
+            norm, loudness, gain = _align_loudness(data, track_lufs, sr)
             data_tracks[name] = norm
             report["tracks"][name] = {"input_db": loudness, "gain_db": gain}
     if not data_tracks:
@@ -118,13 +138,17 @@ def process(
     for t in data_tracks.values():
         for i in range(length):
             mix[i] += t[i]
-    mix, _before_loudness, gain = _align_loudness(mix, mix_lufs)
+    mix, _before_loudness, gain = _align_loudness(mix, mix_lufs, sr)
+    mix, limit_gain, final_loudness, final_tp = _limit_true_peak(
+        mix, sr, truepeak_margin
+    )
     _save(output_dir / "mix.wav", mix, sr)
-    final_loudness = _rms_db(mix)
     with open(output_dir / "mix_lufs.txt", "w") as f:
         f.write(f"{final_loudness:.2f}")
     report["mix_lufs"] = final_loudness
+    report["mix_true_peak"] = final_tp
     report["mix_gain_db"] = gain
+    report["limit_gain_db"] = limit_gain
     with open(output_dir / "report.json", "w") as f:
         json.dump(report, f, indent=2)
     return report

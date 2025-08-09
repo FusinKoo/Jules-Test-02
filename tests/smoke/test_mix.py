@@ -3,7 +3,7 @@ import math
 import wave
 import array
 import pytest
-from mix import process
+from mix import process, _measure_loudness_tp
 
 
 def _write_tone(path, freq, duration=5, sr=48000):
@@ -17,19 +17,17 @@ def _write_tone(path, freq, duration=5, sr=48000):
         wf.setframerate(sr)
         wf.writeframes(ints.tobytes())
 
-def _rms_db(path, head_gap=48000):
+def _measure_lufs_tp(path, head_gap=48000):
     with wave.open(str(path), "rb") as wf:
         assert wf.getsampwidth() == 3
         sr = wf.getframerate()
         frames = wf.readframes(wf.getnframes())
     ints = [int.from_bytes(frames[i:i+3], byteorder="little", signed=True)
             for i in range(0, len(frames), 3)]
-    floats = [s / (2 ** 23) for s in ints]
-    floats = floats[head_gap:] if head_gap < len(floats) else []
-    if not floats:
-        return -float("inf")
-    rms = math.sqrt(sum(x * x for x in floats) / len(floats))
-    return 20 * math.log10(rms)
+    data = [s / (2 ** 23) for s in ints]
+    data = data[head_gap:] if head_gap < len(data) else []
+    loudness, tp = _measure_loudness_tp(data, sr) if data else (-float("inf"), -float("inf"))
+    return loudness, tp
 
 
 def _make_stems(directory, sr=48000):
@@ -49,9 +47,12 @@ def test_mix(tmp_path):
         assert wf.getframerate() == 48000
         head = wf.readframes(48000)
         assert head == b"\x00\x00\x00" * 48000
-    loudness = _rms_db(mix_file)
+    loudness, tp = _measure_lufs_tp(mix_file)
     assert abs(loudness - (-14.0)) < 1.0
+    assert tp <= -1.0 + 0.1
     assert "mix_lufs" in report
+    assert "mix_true_peak" in report
+    assert abs(loudness - report["mix_lufs"]) < 1e-5
     assert "tracks" in report
 
 

@@ -28,5 +28,7 @@ def get_config(profile: str | None = None) -> dict:
         config["track_lufs"] = float(env_track)
     if (env_mix := os.getenv("MIX_MIX_LUFS")) is not None:
         config["mix_lufs"] = float(env_mix)
+    if (env_tp := os.getenv("MIX_TRUEPEAK_MARGIN")) is not None:
+        config["truepeak_margin"] = float(env_tp)
 
     return config
