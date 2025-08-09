@@ -17,9 +17,11 @@ exports 48 kHz/24‑bit WAV files with TPDF dithering and 1 dB true‑peak mar
 
 Launch the Colab notebook via the badge above.
 
-1. Run the first **Environment Setup** cell. It installs `ffmpeg` via
-   `apt-get` and then pulls `torch`, `torchvision` and `torchaudio` from a
-   PyTorch index chosen at runtime. The cell detects the available CUDA
+1. Run the first **Environment Setup** cell. It attempts to install `ffmpeg`
+   via `apt-get` and then pulls `torch`, `torchvision` and `torchaudio` from a
+   PyTorch index chosen at runtime. If `apt-get` is unavailable (e.g., due to
+   network restrictions), the notebook skips this step and expects `ffmpeg`
+   to be installed separately. The cell detects the available CUDA
    version and prefers the matching `cu12x` index. Set
    `PYTORCH_INDEX_URL` to override this URL. If installation from the
    chosen index fails, the cell automatically falls back to the CPU wheels.
