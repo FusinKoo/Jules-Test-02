@@ -28,9 +28,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def resolve_rvc_model(args: argparse.Namespace) -> None:
-    """Populate ``args.rvc_model`` using CLI, env var and discovery.
+    """Resolve and store the RVC model path.
 
-    A notebook dropdown is offered when multiple models are available.
+    Updates ``args`` in place and propagates the result via the
+    :data:`mix.model_manager.ENV_VAR` environment variable so downstream
+    components can locate the model. A notebook dropdown is offered when
+    multiple models are available.
     """
 
     def _in_notebook() -> bool:
@@ -44,4 +47,3 @@ def resolve_rvc_model(args: argparse.Namespace) -> None:
     path = model_manager.get_model_path(args.rvc_model, use_ui=_in_notebook())
     os.environ[model_manager.ENV_VAR] = path
     args.rvc_model = path
-    return args
