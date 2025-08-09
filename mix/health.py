@@ -55,7 +55,7 @@ def check_ffmpeg() -> str | None:
     return None
 
 
-def check_sample_rate(input_dir: str | Path | None, expected_sr: int = 44100) -> str | None:
+def check_sample_rate(input_dir: str | Path | None, expected_sr: int = 48000) -> str | None:
     """Confirm that all ``.wav`` files in ``input_dir`` have the expected sample rate."""
     if not input_dir:
         return None
@@ -89,7 +89,7 @@ def run_preflight_checks(
     input_dir: str | Path | None = None,
     output_dir: str | Path = ".",
     model_path: str | Path | None = None,
-    expected_sr: int = 44100,
+    expected_sr: int = 48000,
     min_gpu_mem_mb: int = 1024,
     min_disk_mb: int = 1024,
 ) -> list[str]:

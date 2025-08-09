@@ -20,7 +20,7 @@ class RVCInferenceConfig:
     peak_db: float = -1.0
     guard_db: float = 0.3
     align_max: float = 0.02
-    sr: int = 44100
+    sr: int = 48000
 
 
 def as_array(audio: Sequence[float]) -> array:
