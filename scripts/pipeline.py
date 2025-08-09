@@ -10,13 +10,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from mix import process
-from pipeline_common import build_parser
+from pipeline_common import build_parser, resolve_rvc_model
 from mix.deterministic import enable_determinism
 
 
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+    resolve_rvc_model(args)
     if args.seed is not None:
         enable_determinism(args.seed)
     if args.dry_run:

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Shared command-line interface for pipeline scripts."""
 import argparse
+import os
+
+from mix import model_manager
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -22,3 +25,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="set random seed and enable deterministic backends",
     )
     return parser
+
+
+def resolve_rvc_model(args):
+    """Populate ``args.rvc_model`` using CLI, env var and discovery.
+
+    A notebook dropdown is offered when multiple models are available.
+    """
+
+    def _in_notebook() -> bool:
+        try:
+            from IPython import get_ipython
+
+            return get_ipython() is not None
+        except Exception:  # pragma: no cover - IPython not installed
+            return False
+
+    path = model_manager.get_model_path(args.rvc_model, use_ui=_in_notebook())
+    os.environ[model_manager.ENV_VAR] = path
+    args.rvc_model = path
+    return args
