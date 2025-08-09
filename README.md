@@ -8,7 +8,7 @@ exports 48 kHz/24‑bit WAV files with TPDF dithering and 1 dB true‑peak mar
 ## Environment Requirements
 
 - Linux with Python 3.8+
-- `ffmpeg` command line tool
+- Audio utilities: `ffmpeg`, `sox`, `libsndfile1`
 - Python packages: `pip install -r requirements-colab-cpu.txt` or `requirements-colab-gpu.txt`
   (both pin `numpy<2.1`, `numba` 0.57–0.59, `librosa==0.10.2.post1` and
   `soundfile>=0.12`)
@@ -17,12 +17,13 @@ exports 48 kHz/24‑bit WAV files with TPDF dithering and 1 dB true‑peak mar
 
 Launch the Colab notebook via the badge above.
 
-1. Run the first **Environment Setup** cell. It attempts to install `ffmpeg`
-   via `apt-get` and then pulls `torch`, `torchvision` and `torchaudio` from a
-   PyTorch index chosen at runtime. If `apt-get` is unavailable (e.g., due to
-   network restrictions), the notebook skips this step and expects `ffmpeg`
-   to be installed separately. The cell detects the available CUDA
-   version and prefers the matching `cu12x` index. Set
+1. Run the first **Environment Setup** cell. It attempts to install the
+   audio utilities listed in `apt.txt` (including `ffmpeg`, `sox` and
+   `libsndfile1`) via `apt-get` and then pulls `torch`, `torchvision` and
+   `torchaudio` from a PyTorch index chosen at runtime. If `apt-get` is
+   unavailable (e.g., due to network restrictions), the notebook skips this
+   step and expects these tools to be installed separately. The cell detects
+   the available CUDA version and prefers the matching `cu12x` index. Set
    `PYTORCH_INDEX_URL` to override this URL. If installation from the
    chosen index fails, the cell automatically falls back to the CPU wheels.
    It prints the selected index, package versions, `torch.cuda.is_available()`,
