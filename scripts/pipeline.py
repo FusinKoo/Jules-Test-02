@@ -19,7 +19,8 @@ def main() -> None:
     if args.dry_run:
         print("Dry run: no processing performed")
         return
-    report = process(Path(args.input), Path(args.output))
+    model_paths = [Path(args.rvc_model)] if args.rvc_model else None
+    report = process(Path(args.input), Path(args.output), model_paths=model_paths)
     print(json.dumps(report, indent=2))
 
 

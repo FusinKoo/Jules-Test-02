@@ -2,6 +2,7 @@ from pathlib import Path
 import math
 import wave
 import array
+import pytest
 from mix import process
 
 
@@ -57,3 +58,26 @@ def test_mix(tmp_path):
     assert abs(loudness - (-14.0)) < 1.0
     assert "mix_lufs" in report
     assert "tracks" in report
+
+
+def test_resume_autodetect(tmp_path):
+    inp = tmp_path / "input"
+    _make_stems(inp)
+    out = tmp_path / "out"
+    report1 = process(inp, out)
+    assert all(not t.get("cached") for t in report1["tracks"].values())
+    # simulate failure after track processing
+    (out / "mix.wav").unlink()
+    (out / "mix_lufs.txt").unlink()
+    (out / "report.json").unlink()
+    report2 = process(inp, out)
+    assert all(t.get("cached") for t in report2["tracks"].values())
+
+
+def test_missing_model(tmp_path):
+    inp = tmp_path / "input"
+    _make_stems(inp)
+    out = tmp_path / "out"
+    missing = tmp_path / "missing.pth"
+    with pytest.raises(FileNotFoundError):
+        process(inp, out, model_paths=[missing])
