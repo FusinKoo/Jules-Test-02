@@ -10,21 +10,26 @@ exports 48 kHz/24‑bit WAV files with TPDF dithering and 1 dB true‑peak mar
 - Linux with Python 3.8+
 - `ffmpeg` command line tool
 - Python packages: `pip install -r requirements-colab-cpu.txt` or `requirements-colab-gpu.txt`
+  (both pin `numpy<2.1`, `numba` 0.57–0.59, `librosa==0.10.2.post1` and
+  `soundfile>=0.12`)
 
 ## One-click Start
 
 Launch the Colab notebook via the badge above.
 
 1. Run the first **Environment Setup** cell. It installs `ffmpeg` via
-   `apt-get` and then pulls `torch`, `torchvision` and `torchaudio` from the
-   official PyTorch indexes. On GPU machines the CUDA 12.1 index is used,
-   while CPU sessions use the CPU‑only index. The three packages are pinned to
-   matching versions, and the cell prints the installed versions along with
-   `torch.cuda.is_available()` and `ffmpeg -version` to confirm a valid setup.
+   `apt-get` and then pulls `torch`, `torchvision` and `torchaudio` from a
+   PyTorch index chosen at runtime. The cell detects the available CUDA
+   version and prefers the matching `cu12x` index. Set
+   `PYTORCH_INDEX_URL` to override this URL. If installation from the
+   chosen index fails, the cell automatically falls back to the CPU wheels.
+   It prints the selected index, package versions, `torch.cuda.is_available()`,
+   `ffmpeg -version` and the resampling backend (expects `soxr`).
 2. Execute the remaining cells to generate short sine‑wave stems and mix them
    using `scripts/mix_cli.py`.
 
-After execution `mix.wav`, `mix_lufs.txt` and `report.json` appear in the notebook's working directory.
+After execution `mix.wav`, `mix_lufs.txt` and `report.json` appear in the notebook's working directory. The report contains the
+final LUFS and true‑peak values measured with `ffmpeg`.
 
 ## UI Usage
 
@@ -116,7 +121,8 @@ to the directory above.
 
 ## Tests
 
-Run the smoke tests that generate synthetic stems and verify audio quality:
+Run the smoke tests that generate synthetic stems and verify audio quality,
+including 48 kHz/24‑bit output, LUFS/true‑peak targets and CPU/GPU parity:
 
 ```bash
 PYTHONPATH=. pytest tests/smoke
