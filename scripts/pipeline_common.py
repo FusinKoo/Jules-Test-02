@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Shared command-line interface for pipeline scripts."""
 import argparse
+import os
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -20,3 +21,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="set random seed and enable deterministic backends",
     )
     return parser
+
+
+def resolve_rvc_model(args: argparse.Namespace) -> None:
+    """Resolve and store the RVC model path.
+
+    Updates ``args`` in place and propagates the result via the
+    ``RVC_MODEL`` environment variable so downstream components can locate the
+    model.
+    """
+    from mix.model_manager import get_model_path
+
+    args.rvc_model = get_model_path(cli_path=args.rvc_model)
+    os.environ["RVC_MODEL"] = args.rvc_model
