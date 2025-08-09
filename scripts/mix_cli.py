@@ -21,7 +21,9 @@ except Exception:  # pragma: no cover
     enable_determinism = None
 
 def main():
-    parser = argparse.ArgumentParser(description="Mix stems into a single track")
+    parser = argparse.ArgumentParser(
+        description="Mix stems into a single track (exports 48 kHz/24-bit WAV)"
+    )
     parser.add_argument("input", help="input directory containing stems")
     parser.add_argument("output", help="output directory")
     parser.add_argument("--reference", help="optional reference track")

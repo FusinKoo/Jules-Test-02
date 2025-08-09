@@ -5,7 +5,9 @@ import argparse
 
 def build_parser() -> argparse.ArgumentParser:
     """Create argument parser with unified options for all pipeline scripts."""
-    parser = argparse.ArgumentParser(description="Run the audio processing pipeline")
+    parser = argparse.ArgumentParser(
+        description="Run the audio processing pipeline (48 kHz/24-bit output)"
+    )
     parser.add_argument("--input", required=True, help="input file or directory")
     parser.add_argument("--output", required=True, help="output directory")
     parser.add_argument("--rvc_model", help="path to the RVC model")

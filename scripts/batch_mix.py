@@ -15,7 +15,9 @@ from mix.deterministic import enable_determinism
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Batch mix songs")
+    parser = argparse.ArgumentParser(
+        description="Batch mix songs (exports 48 kHz/24-bit WAV)"
+    )
     parser.add_argument("input_root", help="root directory containing song folders")
     parser.add_argument("output_root", help="where to place mixed outputs")
     parser.add_argument("--retries", type=int, default=0,
