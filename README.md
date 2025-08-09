@@ -108,10 +108,10 @@ to the directory above.
 
 ## Tests
 
-Run the smoke test that generates synthetic stems:
+Run the smoke tests that generate synthetic stems and verify audio quality:
 
 ```bash
-PYTHONPATH=. pytest tests/smoke/test_mix.py
+PYTHONPATH=. pytest tests/smoke
 ```
 
 ## Deterministic runs
