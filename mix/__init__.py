@@ -4,23 +4,40 @@ import json
 import wave
 import math
 import array
+import struct
 
 from .config import get_config
 
 
 def _load(path: Path, target_sr: int = 48000) -> tuple[list[float], int]:
-    """Load a mono WAV file and resample to ``target_sr`` if needed."""
+    """Load a mono WAV file and resample to ``target_sr`` if needed.
+
+    Audio is converted to float32 and resampled with ``soxr`` using
+    ``quality="best"`` when the input sample rate differs from ``target_sr``.
+    """
     with wave.open(str(path), "rb") as wf:
         sr = wf.getframerate()
+        sw = wf.getsampwidth()
         frames = wf.readframes(wf.getnframes())
-        data = array.array("h", frames)
-    data = [s / 32768.0 for s in data]
+    if sw == 2:
+        ints = array.array("h", frames)
+        data = [s / 32768.0 for s in ints]
+    elif sw == 3:
+        data = []
+        for i in range(0, len(frames), 3):
+            b = frames[i : i + 3]
+            b += b"\xff" if b[2] & 0x80 else b"\x00"
+            data.append(int.from_bytes(b, "little", signed=True) / (2 ** 23))
+    else:
+        raise ValueError("Unsupported sample width")
+    data = [struct.unpack("f", struct.pack("f", x))[0] for x in data]
     if sr != target_sr:
         try:
             import soxr  # type: ignore
         except Exception as exc:  # pragma: no cover - optional dependency
             raise RuntimeError("soxr library is required for resampling") from exc
         data = list(soxr.resample(data, sr, target_sr, quality="best"))
+        data = [struct.unpack("f", struct.pack("f", x))[0] for x in data]
         sr = target_sr
     return data, sr
 
