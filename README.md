@@ -2,10 +2,12 @@
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/FusinKoo/Jules-Test-02/blob/main/notebooks/demo.ipynb)
 Mix four audio stems (`vocals.wav`, `drums.wav`, `bass.wav`, `other.wav`) into a single track.
-Processing runs at 48 kHz float32 and exports 48 kHz/24‑bit WAV files.
-Loudness (LUFS) and true‑peak are measured via [`pyloudnorm`](https://github.com/csteinmetz1/pyloudnorm)
-following ITU‑R BS.1770. Before export the mix is limited to a ‑1 dBTP margin and
-the final values are written to `mix_lufs.txt` and `report.json`.
+Processing runs at 48 kHz float32 with best‑quality `soxr` resampling and exports
+48 kHz/24‑bit WAV files with TPDF dithering. Loudness (LUFS) and true‑peak are
+measured via [`pyloudnorm`](https://github.com/csteinmetz1/pyloudnorm)
+following ITU‑R BS.1770. Before export the mix is limited to a –1 dBTP
+true‑peak margin and the final values are written to `mix_lufs.txt` and
+`report.json`.
 
 ## Environment Requirements
 
@@ -61,7 +63,10 @@ This project demonstrates automatic level balancing. It is not a full mixing sol
 ## FAQ
 
 **Q: What audio formats are supported?**
-A: The toolkit processes and exports audio at 48 kHz/24‑bit by default and accepts WAV inputs at any sample rate.
+A: The toolkit processes audio internally at 48 kHz float32 with best‑quality
+`soxr` resampling and exports 48 kHz/24‑bit WAV files with TPDF dithering and a
+1 dB true‑peak margin. WAV inputs at any sample rate are automatically
+resampled.
 
 **Q: How long can stems be?**
 A: The library has been tested on stems up to a few minutes; longer tracks may require more memory.
