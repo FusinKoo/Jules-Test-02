@@ -5,8 +5,12 @@ import wave
 import math
 import array
 import struct
+import subprocess
+import re
 
 from .config import get_config
+
+_SOXR_LOGGED = False
 
 
 def _load(path: Path, target_sr: int = 48000) -> tuple[list[float], int]:
@@ -34,6 +38,10 @@ def _load(path: Path, target_sr: int = 48000) -> tuple[list[float], int]:
     if sr != target_sr:
         try:
             import soxr  # type: ignore
+            global _SOXR_LOGGED
+            if not _SOXR_LOGGED:
+                print("Resampler backend: soxr", getattr(soxr, "__version__", ""))
+                _SOXR_LOGGED = True
         except Exception as exc:  # pragma: no cover - optional dependency
             raise RuntimeError("soxr library is required for resampling") from exc
         data = list(soxr.resample(data, sr, target_sr, quality="best"))
@@ -73,6 +81,27 @@ def _save(path, data, sr):
     with wave.open(str(path), "rb") as wf:
         if wf.getsampwidth() != 3 or wf.getframerate() != target_sr:
             raise ValueError("Export verification failed")
+
+
+def _measure(path: Path) -> tuple[float, float]:
+    """Measure LUFS and true peak using ``ffmpeg loudnorm``."""
+    cmd = [
+        "ffmpeg",
+        "-hide_banner",
+        "-i",
+        str(path),
+        "-af",
+        "loudnorm=print_format=json",
+        "-f",
+        "null",
+        "-",
+    ]
+    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+    match = re.search(r"\{[^}]+\}", proc.stderr)
+    if not match:
+        raise RuntimeError("ffmpeg loudnorm output missing")
+    info = json.loads(match.group(0))
+    return float(info["input_i"]), float(info["input_tp"])
 
 
 def _rms_db(data):
@@ -136,11 +165,13 @@ def process(
         for i in range(length):
             mix[i] += t[i]
     mix, _before_loudness, gain = _align_loudness(mix, mix_lufs)
-    _save(output_dir / "mix.wav", mix, sr)
-    final_loudness = _rms_db(mix)
+    mix_path = output_dir / "mix.wav"
+    _save(mix_path, mix, sr)
+    lufs, tp = _measure(mix_path)
     with open(output_dir / "mix_lufs.txt", "w") as f:
-        f.write(f"{final_loudness:.2f}")
-    report["mix_lufs"] = final_loudness
+        f.write(f"{lufs:.2f}")
+    report["mix_lufs"] = lufs
+    report["true_peak_db"] = tp
     report["mix_gain_db"] = gain
     with open(output_dir / "report.json", "w") as f:
         json.dump(report, f, indent=2)

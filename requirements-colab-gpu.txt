@@ -1,12 +1,7 @@
---index-url https://download.pytorch.org/whl/cu121
---extra-index-url https://pypi.org/simple
-torch==2.3.0+cu121
-torchaudio==2.3.0+cu121
-torchvision==0.18.0+cu121
-numpy>=1.26,<2
-numba>=0.59,<0.60
-librosa>=0.10,<0.11
-soundfile>=0.12,<0.13
+numpy<2.1
+numba>=0.57,<0.60
+librosa==0.10.2.post1
+soundfile>=0.12
 audioread==3.0.1
 tqdm==4.66.4
 soxr==0.3.7
