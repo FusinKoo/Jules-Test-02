@@ -2,7 +2,8 @@ from pathlib import Path
 import math
 import wave
 import array
-from mix import process
+import json
+from mix import process, _measure
 
 
 def _write_tone(path, freq, duration=5, sr=48000):
@@ -21,21 +22,6 @@ def _write_tone(path, freq, duration=5, sr=48000):
         wf.setframerate(sr)
         wf.writeframes(ints.tobytes())
 
-def _rms_db(path, head_gap=48000):
-    with wave.open(str(path), "rb") as wf:
-        assert wf.getsampwidth() == 3
-        sr = wf.getframerate()
-        frames = wf.readframes(wf.getnframes())
-    ints = [int.from_bytes(frames[i:i+3], byteorder="little", signed=True)
-            for i in range(0, len(frames), 3)]
-    floats = [s / (2 ** 23) for s in ints]
-    floats = floats[head_gap:] if head_gap < len(floats) else []
-    if not floats:
-        return -float("inf")
-    rms = math.sqrt(sum(x * x for x in floats) / len(floats))
-    return 20 * math.log10(rms)
-
-
 def _make_stems(directory):
     freqs = {"vocals": 440, "drums": 220, "bass": 110, "other": 330}
     for name, freq in freqs.items():
@@ -53,7 +39,15 @@ def test_mix(tmp_path):
         assert wf.getframerate() == 48000
         head = wf.readframes(48000)
         assert head == b"\x00\x00\x00" * 48000
-    loudness = _rms_db(mix_file)
-    assert abs(loudness - (-14.0)) < 1.0
+    lufs, tp = _measure(mix_file, skip_seconds=1)
+    assert abs(lufs - (-14.0)) < 1.0
     assert "mix_lufs" in report
+    assert "mix_true_peak" in report
     assert "tracks" in report
+    proc_path = out / "processing.json"
+    assert proc_path.exists()
+    with open(out / "report.json") as f:
+        rep_file = json.load(f)
+    with open(proc_path) as f:
+        proc_file = json.load(f)
+    assert rep_file == proc_file
