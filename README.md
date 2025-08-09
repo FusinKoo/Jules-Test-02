@@ -118,11 +118,13 @@ PYTHONPATH=. pytest tests/smoke/test_mix.py
 
 Use the helper in `mix.deterministic` to reduce run‑to‑run variation across
 CPU and GPU backends. The command line accepts a seed which enables
-deterministic flags for NumPy, PyTorch and cuDNN:
+deterministic flags for NumPy, PyTorch and cuDNN. The mixing CLI and both
+pipeline scripts accept `--seed`:
 
 ```
 python scripts/mix_cli.py input_dir output_dir --seed 0
 python scripts/pipeline.py --input INPUT_DIR --output OUTPUT_DIR --seed 0
+python scripts/pipeline_gdrive.py --input INPUT_DIR --output OUTPUT_DIR --seed 0
 ```
 
 This sets random seeds, fixes STFT parameters (1024 FFT, 256 hop, Hann window)
