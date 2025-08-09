@@ -69,7 +69,7 @@ notebook and batch scripts can invoke them in a consistent way:
 ```bash
 python scripts/pipeline.py --input INPUT_DIR --output OUTPUT_DIR \
     --rvc_model MODEL.pth --f0_method rmvpe \
-    --quality_profile medium --lufs_target -14 \
+    --quality_profile cpu_ultra --lufs_target -14 \
     --truepeak_margin -1 --dry_run
 ```
 

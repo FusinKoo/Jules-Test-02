@@ -1,4 +1,18 @@
 {
-  "cpu_ultra": {"track_lufs": -23.0, "mix_lufs": -14.0},
-  "gpu_ultra": {"track_lufs": -20.0, "mix_lufs": -12.0}
+  "cpu_ultra": {
+    "track_lufs": -23.0,
+    "mix_lufs": -14.0,
+    "f0_method": "rmvpe",
+    "f0_window": 0.2,
+    "batch_size": 1,
+    "resample_quality": "soxr_best"
+  },
+  "gpu_ultra": {
+    "track_lufs": -20.0,
+    "mix_lufs": -12.0,
+    "f0_method": "rmvpe",
+    "f0_window": 0.1,
+    "batch_size": 8,
+    "resample_quality": "soxr_best"
+  }
 }

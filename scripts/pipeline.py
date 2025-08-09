@@ -19,7 +19,7 @@ def main() -> None:
     if args.dry_run:
         print("Dry run: no processing performed")
         return
-    report = process(Path(args.input), Path(args.output))
+    report = process(Path(args.input), Path(args.output), profile=args.quality_profile)
     print(json.dumps(report, indent=2))
 
 

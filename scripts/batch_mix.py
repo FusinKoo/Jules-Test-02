@@ -17,14 +17,19 @@ def main():
     parser = argparse.ArgumentParser(description="Batch mix songs")
     parser.add_argument("input_root", help="root directory containing song folders")
     parser.add_argument("output_root", help="where to place mixed outputs")
-    parser.add_argument("--retries", type=int, default=0,
-                        help="number of times to retry failed mixes")
+    parser.add_argument(
+        "--retries", type=int, default=0,
+        help="number of times to retry failed mixes"
+    )
+    parser.add_argument(
+        "--quality_profile", default="cpu_ultra", help="quality/speed profile"
+    )
     args = parser.parse_args()
     tasks = []
     for song_dir in Path(args.input_root).iterdir():
         if song_dir.is_dir():
             out_dir = Path(args.output_root) / song_dir.name
-            tasks.append(partial(process, song_dir, out_dir))
+            tasks.append(partial(process, song_dir, out_dir, profile=args.quality_profile))
     if not tasks:
         print("No song folders found.")
         return

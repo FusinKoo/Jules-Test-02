@@ -30,12 +30,20 @@ def main():
         type=int,
         help="set random seed and enable deterministic backends",
     )
+    parser.add_argument(
+        "--quality_profile", default="cpu_ultra", help="quality/speed profile"
+    )
     args = parser.parse_args()
     if args.seed is not None and enable_determinism is not None:
         enable_determinism(args.seed)
     device = "cuda" if (torch and torch.cuda.is_available()) else "cpu"
     print(f"Using device: {device}")
-    report = process(Path(args.input), Path(args.output), reference=args.reference)
+    report = process(
+        Path(args.input),
+        Path(args.output),
+        reference=args.reference,
+        profile=args.quality_profile,
+    )
     print(json.dumps(report, indent=2))
 
 if __name__ == "__main__":
