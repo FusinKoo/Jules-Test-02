@@ -72,7 +72,7 @@ notebook and batch scripts can invoke them in a consistent way:
 
 ```bash
 python scripts/pipeline.py --input INPUT_DIR --output OUTPUT_DIR \
-    --rvc_model MODEL.pth --f0_method rmvpe \
+    [--rvc_model MODEL.pth] --f0_method rmvpe \
     --quality_profile medium --lufs_target -14 \
     --truepeak_margin -1 --seed 0 --dry_run
 ```
@@ -81,7 +81,7 @@ Arguments:
 
 - `--input` – input file or directory.
 - `--output` – output directory.
-- `--rvc_model` – path to the RVC model.
+- `--rvc_model` – override path to the RVC model (defaults to auto discovery).
 - `--f0_method` – pitch extraction method.
 - `--quality_profile` – quality/speed trade‑off.
 - `--lufs_target` – target loudness in LUFS.
