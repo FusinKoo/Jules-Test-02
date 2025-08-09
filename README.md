@@ -102,6 +102,21 @@ Arguments:
 - `--seed` – set random seed and enable deterministic algorithms.
 - `--dry_run` – run without producing output.
 
+### Full-song processing in Colab
+
+For a single mixed song the `scripts/colab_pipeline.py` helper performs an
+end‑to‑end workflow: Demucs source separation, optional RVC voice conversion of
+the vocal stem and final mixing via the library's processing chain.
+
+```bash
+python scripts/colab_pipeline.py --input song.wav --output OUTPUT_DIR \
+    --rvc_model /content/drive/MyDrive/models/RVC/G_8200.pth
+```
+
+The script imports heavy dependencies lazily so unit tests remain lightweight.
+Install `demucs` and an RVC inference library in the Colab environment before
+running it.
+
 ## RVC model selection
 
 By default the toolkit expects an RVC model at
