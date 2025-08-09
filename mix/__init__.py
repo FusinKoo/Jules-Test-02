@@ -4,6 +4,9 @@ import json
 import wave
 import array
 import math
+import subprocess
+import tempfile
+import os
 
 from .config import get_config
 
@@ -51,24 +54,54 @@ def _save(path, data, sr):
             raise ValueError("Export verification failed")
 
 
-def _rms_db(data):
-    if not data:
-        return -float("inf")
-    rms = math.sqrt(sum(x * x for x in data) / len(data))
-    if rms == 0:
-        return -float("inf")
-    return 20 * math.log10(rms)
-
-
 def _apply_gain(data, gain_db):
     factor = math.pow(10.0, gain_db / 20.0)
     return [x * factor for x in data]
 
 
-def _align_loudness(data, target_db):
-    loudness = _rms_db(data)
-    gain = target_db - loudness
-    return _apply_gain(data, gain), loudness, gain
+def _measure(path, skip_seconds=0.0):
+    """Measure integrated loudness (LUFS) and true peak (dBTP) using ffmpeg."""
+    filters = []
+    if skip_seconds:
+        filters.append(f"atrim=start={skip_seconds}")
+    filters.append("loudnorm=print_format=json")
+    cmd = [
+        "ffmpeg",
+        "-hide_banner",
+        "-nostats",
+        "-i",
+        str(path),
+        "-af",
+        ",".join(filters),
+        "-f",
+        "null",
+        "-",
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    stderr = proc.stderr
+    json_start = stderr.rfind("{")
+    info = json.loads(stderr[json_start:])
+    return float(info["input_i"]), float(info["input_tp"])
+
+
+def _measure_data(data, sr):
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+    try:
+        with wave.open(str(tmp_path), "wb") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(sr)
+            ints = array.array(
+                "h", [int(max(-1.0, min(1.0, x)) * 32767) for x in data]
+            )
+            wf.writeframes(ints.tobytes())
+        return _measure(tmp_path)
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except FileNotFoundError:
+            pass
 
 
 def process(
@@ -101,9 +134,15 @@ def process(
         stem_path = input_dir / f"{name}.wav"
         if stem_path.exists():
             data, sr = _load(stem_path)
-            norm, loudness, gain = _align_loudness(data, track_lufs)
+            lufs, tp = _measure(stem_path)
+            gain = track_lufs - lufs
+            norm = _apply_gain(data, gain)
             data_tracks[name] = norm
-            report["tracks"][name] = {"input_db": loudness, "gain_db": gain}
+            report["tracks"][name] = {
+                "input_lufs": lufs,
+                "input_tp": tp,
+                "gain_db": gain,
+            }
     if not data_tracks:
         raise FileNotFoundError("No stem files found in input directory")
     length = min(len(t) for t in data_tracks.values())
@@ -111,14 +150,19 @@ def process(
     for t in data_tracks.values():
         for i in range(length):
             mix[i] += t[i]
-    mix, _before_loudness, gain = _align_loudness(mix, mix_lufs)
+    raw_lufs, _ = _measure_data(mix, sr)
+    gain = mix_lufs - raw_lufs
+    mix = _apply_gain(mix, gain)
     _save(output_dir / "mix.wav", mix, sr)
-    final_loudness = _rms_db(mix)
+    final_lufs, final_tp = _measure(output_dir / "mix.wav", skip_seconds=1)
     with open(output_dir / "mix_lufs.txt", "w") as f:
-        f.write(f"{final_loudness:.2f}")
-    report["mix_lufs"] = final_loudness
+        f.write(f"{final_lufs:.2f}")
+    report["mix_lufs"] = final_lufs
+    report["mix_true_peak"] = final_tp
     report["mix_gain_db"] = gain
     with open(output_dir / "report.json", "w") as f:
+        json.dump(report, f, indent=2)
+    with open(output_dir / "processing.json", "w") as f:
         json.dump(report, f, indent=2)
     return report
 

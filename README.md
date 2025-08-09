@@ -16,7 +16,7 @@ Launch the Colab notebook via the badge above and run all cells:
 1. Installs dependencies (ffmpeg, PyTorch, the library).
 2. Generates short sine-wave stems and mixes them using `scripts/mix_cli.py`.
 
-After execution `mix.wav`, `mix_lufs.txt` and `report.json` appear in the notebook's working directory.
+After execution `mix.wav`, `mix_lufs.txt`, `report.json` and `processing.json` appear in the notebook's working directory. The JSON reports store loudness and true‑peak values measured with ffmpeg's `loudnorm` filter (ITU‑R BS.1770).
 
 ## UI Usage
 
