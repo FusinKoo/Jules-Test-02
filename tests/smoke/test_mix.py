@@ -36,6 +36,22 @@ def _rms_db(path, head_gap=48000):
     return 20 * math.log10(rms)
 
 
+def _true_peak_db(path, head_gap=48000):
+    with wave.open(str(path), "rb") as wf:
+        assert wf.getsampwidth() == 3
+        frames = wf.readframes(wf.getnframes())
+    ints = [
+        int.from_bytes(frames[i : i + 3], byteorder="little", signed=True)
+        for i in range(0, len(frames), 3)
+    ]
+    floats = [s / (2 ** 23) for s in ints]
+    floats = floats[head_gap:] if head_gap < len(floats) else []
+    if not floats:
+        return -float("inf")
+    peak = max(abs(x) for x in floats)
+    return 20 * math.log10(peak) if peak > 0 else -float("inf")
+
+
 def _make_stems(directory):
     freqs = {"vocals": 440, "drums": 220, "bass": 110, "other": 330}
     for name, freq in freqs.items():
@@ -54,6 +70,8 @@ def test_mix(tmp_path):
         head = wf.readframes(48000)
         assert head == b"\x00\x00\x00" * 48000
     loudness = _rms_db(mix_file)
-    assert abs(loudness - (-14.0)) < 1.0
+    true_peak = _true_peak_db(mix_file)
+    assert abs(loudness - report["config"]["mix_lufs"]) < 1.0
+    assert true_peak <= -0.8
     assert "mix_lufs" in report
     assert "tracks" in report

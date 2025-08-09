@@ -54,7 +54,7 @@ This project demonstrates automatic level balancing. It is not a full mixing sol
 ## FAQ
 
 **Q: What audio formats are supported?**
-A: Only 44.1 kHz WAV files are tested.
+A: Only 48 kHz WAV files are tested.
 
 **Q: How long can stems be?**
 A: The library has been tested on stems up to a few minutes; longer tracks may require more memory.
@@ -86,11 +86,14 @@ Arguments:
 
 ## Tests
 
-Run the smoke test that generates synthetic stems:
+Run the smoke tests that generate synthetic stems and check both CPU and GPU paths:
 
 ```bash
-PYTHONPATH=. pytest tests/smoke/test_mix.py
+PYTHONPATH=. pytest tests/smoke -q
 ```
+
+Exports are verified to be 48 kHz/24‑bit and CPU/GPU loudness and true peak
+measurements must agree within 0.1 LUFS and 0.2 dB.
 
 ## Deterministic runs
 

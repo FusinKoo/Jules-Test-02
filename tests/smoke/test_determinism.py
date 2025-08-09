@@ -35,15 +35,17 @@ def test_cpu_gpu_alignment(tmp_path):
 
     if not (torch and torch.cuda.is_available()):
         pytest.skip("CUDA not available")
+    gpu_data = data.to("cuda")
+    assert data.shape == gpu_data.shape
 
     spec_cpu = stft(data)
-    spec_gpu = stft(data.to("cuda")).cpu()
+    spec_gpu = stft(gpu_data).cpu()
     max_diff = torch.max(torch.abs(spec_cpu - spec_gpu)).item()
     assert max_diff < 1e-6
 
-    gpu_lufs = 20 * torch.log10(torch.sqrt(torch.mean((data.to("cuda") ** 2)))).item()
+    gpu_lufs = 20 * torch.log10(torch.sqrt(torch.mean(gpu_data ** 2))).item()
     assert abs(cpu_lufs - gpu_lufs) < 0.1
 
     peak_cpu = _peak_db(data)
-    peak_gpu = _peak_db(data.to("cuda"))
+    peak_gpu = _peak_db(gpu_data)
     assert abs(peak_cpu - peak_gpu) < 0.2
