@@ -11,11 +11,14 @@ if str(ROOT) not in sys.path:
 
 from mix import process
 from pipeline_common import build_parser
+from mix.deterministic import enable_determinism
 
 
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+    if args.seed is not None:
+        enable_determinism(args.seed)
     if args.dry_run:
         print("Dry run: no processing performed")
         return

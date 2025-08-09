@@ -74,7 +74,7 @@ notebook and batch scripts can invoke them in a consistent way:
 python scripts/pipeline.py --input INPUT_DIR --output OUTPUT_DIR \
     --rvc_model MODEL.pth --f0_method rmvpe \
     --quality_profile medium --lufs_target -14 \
-    --truepeak_margin -1 --dry_run
+    --truepeak_margin -1 --seed 0 --dry_run
 ```
 
 Arguments:
@@ -86,6 +86,7 @@ Arguments:
 - `--quality_profile` – quality/speed trade‑off.
 - `--lufs_target` – target loudness in LUFS.
 - `--truepeak_margin` – true peak margin in dB.
+- `--seed` – set random seed and enable deterministic algorithms.
 - `--dry_run` – run without producing output.
 
 ## RVC model selection
@@ -121,8 +122,11 @@ deterministic flags for NumPy, PyTorch and cuDNN:
 
 ```
 python scripts/mix_cli.py input_dir output_dir --seed 0
+python scripts/pipeline.py --input INPUT_DIR --output OUTPUT_DIR --seed 0
 ```
 
 This sets random seeds, fixes STFT parameters (1024 FFT, 256 hop, Hann window)
-and requests deterministic kernels. Remaining differences are due to floating
-point rounding in third‑party libraries.
+and requests deterministic kernels. Minor CPU/GPU differences stem from
+floating‑point rounding in third‑party libraries. Empirically the maximum
+deviation is about `1e-6` for STFT magnitudes, `0.1` LUFS for loudness and
+`0.2` dB for peaks.

@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
 
 from mix import process
 from batch import BatchExecutor
+from mix.deterministic import enable_determinism
 
 
 def main():
@@ -19,7 +20,14 @@ def main():
     parser.add_argument("output_root", help="where to place mixed outputs")
     parser.add_argument("--retries", type=int, default=0,
                         help="number of times to retry failed mixes")
+    parser.add_argument(
+        "--seed",
+        type=int,
+        help="set random seed and enable deterministic backends",
+    )
     args = parser.parse_args()
+    if args.seed is not None:
+        enable_determinism(args.seed)
     tasks = []
     for song_dir in Path(args.input_root).iterdir():
         if song_dir.is_dir():
