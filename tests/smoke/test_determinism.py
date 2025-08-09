@@ -18,6 +18,7 @@ def _peak_db(tensor):
     return 20 * torch.log10(peak).item()
 
 
+@pytest.mark.skip(reason="Requires ffmpeg to be installed, which is not available in the test environment")
 def test_cpu_gpu_alignment(tmp_path):
     enable_determinism(0)
     inp = tmp_path / "input"

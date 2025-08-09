@@ -8,7 +8,7 @@ exports 48 kHz/24‑bit WAV files with TPDF dithering and 1 dB true‑peak mar
 ## Environment Requirements
 
 - Linux with Python 3.8+
-- `ffmpeg` command line tool
+- `ffmpeg`, `sox`, `libsndfile1` command line tools
 - Python packages: `pip install -r requirements-colab-cpu.txt` or `requirements-colab-gpu.txt`
   (both pin `numpy<2.1`, `numba` 0.57–0.59, `librosa==0.10.2.post1` and
   `soundfile>=0.12`)
@@ -17,18 +17,20 @@ exports 48 kHz/24‑bit WAV files with TPDF dithering and 1 dB true‑peak mar
 
 Launch the Colab notebook via the badge above.
 
-1. Run the first **Environment Setup** cell. It attempts to install `ffmpeg`
+1. Run the **Environment Setup** cell. It attempts to install `ffmpeg`, `sox` and `libsndfile1`
    via `apt-get` and then pulls `torch`, `torchvision` and `torchaudio` from a
    PyTorch index chosen at runtime. If `apt-get` is unavailable (e.g., due to
-   network restrictions), the notebook skips this step and expects `ffmpeg`
+   network restrictions), the notebook skips this step and expects the tools
    to be installed separately. The cell detects the available CUDA
    version and prefers the matching `cu12x` index. Set
    `PYTORCH_INDEX_URL` to override this URL. If installation from the
    chosen index fails, the cell automatically falls back to the CPU wheels.
    It prints the selected index, package versions, `torch.cuda.is_available()`,
    `ffmpeg -version` and the resampling backend (expects `soxr`).
-2. Execute the remaining cells to generate short sine‑wave stems and mix them
-   using `scripts/mix_cli.py`.
+2. Run the **Mount Google Drive** cell to connect your Google Drive. This is optional but required if you want to use your own RVC models from Drive.
+3. Run the **RVC Model Setup** cell. This cell explains how to add RVC models to your Colab environment and clarifies the current status of the RVC implementation.
+4. Execute the remaining cells to generate short sine‑wave stems and mix them
+   using `scripts/pipeline.py`.
 
 After execution `mix.wav`, `mix_lufs.txt` and `report.json` appear in the notebook's working directory. The report contains the
 final LUFS and true‑peak values measured with `ffmpeg`.
@@ -60,7 +62,7 @@ The script relies on the `BatchExecutor` helper located in `batch_executor.py`.
 
 ## Common Faults
 
-- **`ffmpeg: command not found`** – install `ffmpeg`.
+- **`ffmpeg: command not found`** – install `ffmpeg`, `sox`, `libsndfile1` (the Colab notebook handles this automatically).
 - **Missing stem file** – ensure all four stems exist with the expected names.
 - **`Using device: cpu` when expecting GPU** – check CUDA availability in Colab or install GPU drivers locally.
 
@@ -119,12 +121,12 @@ The script imports heavy dependencies lazily so unit tests remain lightweight.
 Install `demucs` and an RVC inference library in the Colab environment before
 running it.
 
+**Note on RVC implementation:** The RVC feature in `scripts/colab_pipeline.py` is currently a placeholder. It includes an "identity" model that does not perform any voice conversion. To use a real RVC model, the script needs to be modified.
+
 ## RVC model selection
 
 By default the toolkit expects an RVC model at
-`/content/drive/MyDrive/models/RVC/G_8200.pth`. All `.pth` files inside
-`/content/drive/MyDrive/models/RVC/` are scanned on startup and presented as
-candidates.
+`/content/drive/MyDrive/models/RVC/G_8200.pth`. The Colab notebook provides a setup cell to help you place your models in the correct directory (`/content/models/RVC`). All `.pth` files inside this directory are scanned on startup and presented as candidates.
 
 Model priority is:
 
